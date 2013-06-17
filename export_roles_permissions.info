@@ -1,0 +1,3 @@
+name = Export Roles & Permissions
+description = Generates a hook_install() implementation to create the specified roles and permissions.
+core = 7.x
