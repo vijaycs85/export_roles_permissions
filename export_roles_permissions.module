@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Provides a way of exporting roles in to code.
+ */
+
+/**
  * Implements hook_menu().
  */
 function export_roles_permissions_menu() {
@@ -30,7 +35,7 @@ function export_roles_permissions_form($form, &$form_state) {
   if (isset($form_state['code'])) {
     $form[] = array(
       '#type' => 'item',
-      '#markup' => "Add the following code to " . $form_state['values']['module'] . ".install<br>If you already have a hook_install() implementation, you'll need to manually merge the 2 blocks of code.",
+      '#markup' => "Add the following code to " . $form_state['values']['module'] . ".install<br />If you already have a hook_install() implementation, you'll need to manually merge the 2 blocks of code.",
     );
     $form[] = array(
       '#type' => 'textarea',
