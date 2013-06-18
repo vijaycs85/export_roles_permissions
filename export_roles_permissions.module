@@ -81,10 +81,13 @@ function export_roles_permissions_form_submit($form, &$form_state) {
 
   foreach ($form_state['values']['roles'] as $rid) {
     if ($rid != 0) {
-      $code[] = '  // Create the role.';
-      $code[] = '  $role = new stdClass();';
-      $code[] = '  $role->name = \'' . $roles[$rid] . '\';';
-      $code[] = '  user_role_save($role);';
+      $code[] = '  // Create the role if necessary.';
+      $code[] = '  $role = user_role_load_by_name(\'' . $roles[$rid] . '\');';
+      $code[] = '  if (!$role) {';
+      $code[] = '    $role = new stdClass();';
+      $code[] = '    $role->name = \'' . $roles[$rid] . '\';';
+      $code[] = '    user_role_save($role);';
+      $code[] = '  }';
       $code[] = '';
       $code[] = '  // Add the permissions to the role.';
       $code[] = '  $permissions = array(';
