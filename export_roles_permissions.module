@@ -17,6 +17,7 @@ function export_roles_permissions_menu() {
     'page arguments' => array('export_roles_permissions_form'),
     'access arguments' => array('administer permissions'),
     'type' => MENU_LOCAL_TASK,
+    'file' => 'export_roles_permissions.admin.inc',
   );
 
   return $items;
@@ -83,16 +84,10 @@ function export_roles_permissions_form_submit($form, &$form_state) {
     if ($rid != 0) {
       $code[] = '  // Create the role if necessary.';
       $code[] = '  $role = user_role_load_by_name(\'' . $roles[$rid] . '\');';
-      $code[] = '  if (!$role) {';
-      $code[] = '    $role = new stdClass();';
-      $code[] = '    $role->name = \'' . $roles[$rid] . '\';';
-      $code[] = '    user_role_save($role);';
-      $code[] = '  }';
-      $code[] = '';
       $code[] = '  // Add the permissions to the role.';
       $code[] = '  $permissions = array(';
 
-      $perms = user_role_permissions(array($rid => $rid));
+      $perms = export_roles_permissions_get_permissions(array($rid => $rid));
       foreach ($perms[$rid] as $perm => $val) {
         $code[] = "    '" . $perm . "',";
       }
@@ -108,4 +103,98 @@ function export_roles_permissions_form_submit($form, &$form_state) {
 
   $form_state['code'] = $code;
   $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Determine the permissions for one or more roles.
+ *
+ * This is a back port of the Drupal 7 user_role_permissions() function.
+ *
+ * @param $roles
+ *   An array whose keys are the role IDs of interest, such as $user->roles.
+ *
+ * @return array
+ *   If $roles is a non-empty array, an array indexed by role ID is returned.
+ *   Each value is an array whose keys are the permission strings for the given
+ *   role ID. If $roles is empty nothing is returned.
+ */
+function export_roles_permissions_get_role_permissions($roles = array()) {
+  static $cache = array();
+
+  $role_permissions = $fetch = array();
+
+  if ($roles) {
+    foreach ($roles as $rid => $name) {
+      if (isset($cache[$rid])) {
+        $role_permissions[$rid] = $cache[$rid];
+      }
+      else {
+        // Add this rid to the list of those needing to be fetched.
+        $fetch[] = $rid;
+        // Prepare in case no permissions are returned.
+        $cache[$rid] = array();
+      }
+    }
+
+    if ($fetch) {
+      // Get from the database permissions that were not in the static variable.
+      // Only role IDs with at least one permission assigned will return rows.
+      $result = db_query("SELECT rid, perm FROM {permission} WHERE rid IN (%s)", array(implode(',', $fetch)));
+
+      foreach (db_fetch_object($result) as $row) {
+        $cache[$row->rid] = explode(',', $row->perm);
+      }
+      foreach ($fetch as $rid) {
+        // For every rid, we know we at least assigned an empty array.
+        $role_permissions[$rid] = $cache[$rid];
+      }
+    }
+  }
+
+  return $role_permissions;
+}
+
+/**
+ * Grants permissions to a user role.
+ *
+ * This is a back port of the Drupal 7 user_role_grant_permissions() function.
+ *
+ * @param int $rid
+ *   The ID of a user role to alter.
+ * @param array $permissions
+ *   A list of permission names to grant.
+ */
+function export_roles_permissions_grant_permissions($rid, $permissions) {
+  // If given array is empty, there's nothing to do.
+  if (empty($permissions)) {
+    return;
+  }
+
+  // Load all permissions granted to given role.
+  $role_row = db_fetch_object(db_query("SELECT * FROM {permission} WHERE rid = %d", array($rid)));
+
+  // If none was found, insert an empty entry in database so that we can simply
+  // update it further down.
+  if ($role_row === FALSE) {
+    $role_row = new StdClass();
+    $role_row->rid = $rid;
+    $role_row->perm = '';
+
+    db_query("INSERT INTO {permission} (rid, perm) VALUES(%d, '%s')",array($role_row->rid, $role_row->perm));
+
+    $role_row->pid = db_last_insert_id('permission', 'pid');
+  }
+
+  // Extract list of current permissions:
+  $current_permissions = explode(', ', $role_row->perm);
+
+  // Add new permissions:
+  $new_permissions = array_merge($current_permissions, $permissions);
+  $new_permissions = array_unique($new_permissions);
+  // Remove empty strings.
+  $new_permissions = array_filter($new_permissions, function($value) {
+    return $value !== "";
+  });
+
+  db_query("UPDATE {permission} SET perm = '%s' WHERE pid = %d",array(implode(', ', $new_permissions), $role_row->pid,));
 }

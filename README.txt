@@ -1,13 +1,12 @@
--- SUMMARY --
+Export User Roles and Permissions
+=================================
 
 This module allows you to generate a hook_install() implementation that creates
 the chosen roles with their associated permissions.
 
--- REQUIREMENTS --
 
-None.
-
--- USAGE --
+USAGE
+=====
 
 * Enable the module
 * Visit admin/people/export
