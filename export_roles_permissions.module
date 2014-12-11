@@ -136,3 +136,32 @@ function export_roles_permissions_grant_permissions($rid, $permissions) {
 function export_roles_permissions_user_role_load_by_name($role_name) {
   return db_fetch_object(db_query('SELECT * FROM {role} WHERE name = "%s"', array($role_name)));
 }
+
+/**
+ * Saves a user role to the database.
+ *
+ * This is a back port of the Drupal 7 user_role_load_by_name() function.
+ *
+ * @param object $role
+ *   A role object to modify or add. If $role->rid is not specified, a new role
+ *   will be created.
+ *
+ * @return int|FALSE
+ *   Failure to write a record will return FALSE. Otherwise SAVED_NEW or
+ *   SAVED_UPDATED is returned depending on the operation performed.
+ */
+function export_roles_permissions_user_role_save($role) {
+  if ($role->name) {
+    // Prevent leading and trailing spaces in role names.
+    $role->name = trim($role->name);
+  }
+
+  if (!empty($role->rid) && $role->name) {
+    $status = drupal_write_record('role', $role, 'rid');
+  }
+  else {
+    $status = drupal_write_record('role', $role);
+  }
+
+  return $status;
+}
