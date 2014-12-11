@@ -29,11 +29,13 @@ function export_roles_permissions_form(&$form_state) {
     );
   }
   else {
+    drupal_add_js(drupal_get_path('module', 'export_roles_permissions') . '/export_roles_permissions.js');
     $form['roles'] = array(
       '#type' => 'checkboxes',
       '#title' => 'Roles to export',
       '#options' => user_roles(TRUE),
       '#description' => t('Export all the permissions associated with roles.'),
+      '#attributes' => array('class' => 'checkbox-bulk-operation'),
     );
 
     $form['module'] = array(
