@@ -27,13 +27,13 @@ function export_roles_permissions_menu() {
  *
  * This is a back port of the Drupal 7 user_role_permissions() function.
  *
- * @param $roles
+ * @param array $roles
  *   An array whose keys are the role IDs of interest, such as $user->roles.
  *
  * @return array
  *   If $roles is a non-empty array, an array indexed by role ID is returned.
- *   Each value is an array whose keys are the permission strings for the given
- *   role ID. If $roles is empty nothing is returned.
+ *   Each value is an array of the permission strings for the given role ID.
+ *   If $roles is empty an empty array is returned.
  */
 function export_roles_permissions_get_role_permissions($roles = array()) {
   static $cache = array();
@@ -56,9 +56,9 @@ function export_roles_permissions_get_role_permissions($roles = array()) {
     if ($fetch) {
       // Get from the database permissions that were not in the static variable.
       // Only role IDs with at least one permission assigned will return rows.
-      $result = db_query('SELECT rid, perm FROM {permission} WHERE rid IN (' . db_placeholders($fetch) .')', $fetch);
+      $result = db_query('SELECT rid, perm FROM {permission} WHERE rid IN (' . db_placeholders($fetch) . ')', $fetch);
       while ($row = db_fetch_object($result)) {
-        $cache[$row->rid] = explode(',', $row->perm);
+        $cache[$row->rid] = explode(', ', $row->perm);
       }
       foreach ($fetch as $rid) {
         // For every rid, we know we at least assigned an empty array.
@@ -86,6 +86,12 @@ function export_roles_permissions_grant_permissions($rid, $permissions) {
     return;
   }
 
+  // Make sure given role ID is valid first. If not, there is nothing to do.
+  $role = db_fetch_object(db_query("SELECT rid FROM {role} WHERE rid = %d", array($rid)));
+  if ($role === FALSE) {
+    return;
+  }
+
   // Load all permissions granted to given role.
   $role_row = db_fetch_object(db_query("SELECT * FROM {permission} WHERE rid = %d", array($rid)));
 
@@ -96,7 +102,7 @@ function export_roles_permissions_grant_permissions($rid, $permissions) {
     $role_row->rid = $rid;
     $role_row->perm = '';
 
-    db_query("INSERT INTO {permission} (rid, perm) VALUES(%d, '%s')",array($role_row->rid, $role_row->perm));
+    db_query("INSERT INTO {permission} (rid, perm) VALUES(%d, '%s')", array($role_row->rid, $role_row->perm));
 
     $role_row->pid = db_last_insert_id('permission', 'pid');
   }
@@ -112,7 +118,7 @@ function export_roles_permissions_grant_permissions($rid, $permissions) {
     return $value !== "";
   });
 
-  db_query("UPDATE {permission} SET perm = '%s' WHERE pid = %d",array(implode(', ', $new_permissions), $role_row->pid,));
+  db_query("UPDATE {permission} SET perm = '%s' WHERE pid = %d", array(implode(', ', $new_permissions), $role_row->pid));
 }
 
 /**

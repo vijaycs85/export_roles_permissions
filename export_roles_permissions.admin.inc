@@ -2,6 +2,7 @@
 
 /**
  * @file
+ * Administration page for exporting permissions.
  */
 
 /**
@@ -17,8 +18,9 @@ function export_roles_permissions_form(&$form_state) {
   if (isset($form_state['code'])) {
     $form[] = array(
       '#type' => 'item',
-      '#markup' => "Add the following code to " . $form_state['values']['module'] . ".install<br />If you already have a hook_install() implementation, you'll need to manually merge the 2 blocks of code.",
+      '#markup' => t("Add the following code to @module_name.install<br />If you already have a hook_install() implementation, you'll need to manually merge the 2 blocks of code.", array('@module_name' => $form_state['values']['module'])),
     );
+
     $form[] = array(
       '#type' => 'textarea',
       '#rows' => 30,
@@ -31,19 +33,19 @@ function export_roles_permissions_form(&$form_state) {
       '#type' => 'checkboxes',
       '#title' => 'Roles to export',
       '#options' => user_roles(TRUE),
-      '#description' => t('Export all the permissions associated with roles.')
+      '#description' => t('Export all the permissions associated with roles.'),
     );
 
     $form['module'] = array(
       '#type' => 'textfield',
       '#title' => 'Module name',
-      '#description' => 'The machine name of the module, used in function names.',
+      '#description' => t('The machine name of the module, used in function names.'),
       '#required' => TRUE,
     );
 
     $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => 'Create',
+      '#value' => t('Create'),
     );
   }
 
@@ -57,6 +59,8 @@ function export_roles_permissions_form_submit($form, &$form_state) {
   $code = array();
   $roles = user_roles(TRUE);
 
+  // TODO: Include code to create missing roles from the database if any.
+
   $code[] = '/**';
   $code[] = ' * Implements hook_install().';
   $code[] = ' */';
@@ -68,9 +72,9 @@ function export_roles_permissions_form_submit($form, &$form_state) {
       $code[] = '  // Add the permissions to the role.';
       $code[] = '  $permissions = array(';
 
-      $perms = export_roles_permissions_get_role_permissions(array($rid => $rid));
+      $perms = export_roles_permissions_get_role_permissions(array($rid => $roles[$rid]));
       foreach ($perms[$rid] as $perm) {
-        $code[] = "    '" . trim($perm) . "',";
+        $code[] = "    '" . $perm . "',";
       }
 
       $code[] = '  );';
