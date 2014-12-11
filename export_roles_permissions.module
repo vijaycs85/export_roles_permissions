@@ -27,7 +27,7 @@ function export_roles_permissions_menu() {
  *
  * This is a back port of the Drupal 7 user_role_permissions() function.
  *
- * @param array $roles_ids
+ * @param array $roles
  *   An array whose keys are the role IDs of interest, such as $user->roles.
  *
  * @return array
@@ -35,13 +35,13 @@ function export_roles_permissions_menu() {
  *   Each value is an array of the permission strings for the given role ID.
  *   If $roles is empty an empty array is returned.
  */
-function export_roles_permissions_get_role_permissions($roles_ids = array()) {
+function export_roles_permissions_get_role_permissions($roles = array()) {
   static $cache = array();
 
   $role_permissions = $fetch = array();
 
-  if ($roles_ids) {
-    foreach ($roles_ids as $rid => $name) {
+  if ($roles) {
+    foreach ($roles as $rid => $name) {
       if (isset($cache[$rid])) {
         $role_permissions[$rid] = $cache[$rid];
       }
