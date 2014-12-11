@@ -59,8 +59,6 @@ function export_roles_permissions_form_submit($form, &$form_state) {
   $code = array();
   $roles = user_roles(TRUE);
 
-  // TODO: Include code to create missing roles from the database if any.
-
   $code[] = '/**';
   $code[] = ' * Implements hook_install().';
   $code[] = ' */';
@@ -68,7 +66,16 @@ function export_roles_permissions_form_submit($form, &$form_state) {
 
   foreach ($form_state['values']['roles'] as $rid) {
     if ($rid != 0) {
+      $code[] = '  // Load role "' . $roles[$rid] . '".';
       $code[] = '  $role = export_roles_permissions_user_role_load_by_name(\'' . $roles[$rid] . '\');';
+      $code[] = '';
+      $code[] = '  // Create the role if necessary.';
+      $code[] = '  if ($role === FALSE) {';
+      $code[] = '    $role = new stdClass();';
+      $code[] = '    $role->name = \'' . $roles[$rid] . '\';';
+      $code[] = '    export_roles_permissions_user_role_save($role);';
+      $code[] = '  }';
+      $code[] = '';
       $code[] = '  // Add the permissions to the role.';
       $code[] = '  $permissions = array(';
 
